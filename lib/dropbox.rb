@@ -75,7 +75,7 @@ module Dropbox
   end
 
   def upload(local_path, dropbox_path)
-    chunkSize = if DEBUG_CHUNKING then 16 * 1024 else DROPBOX_UL_CHUNK_SIZE
+    chunkSize = if DEBUG_CHUNKING then 16 * 1024 else DROPBOX_UL_CHUNK_SIZE end
     dropbox_path = normalize_path(dropbox_path)
     log_upload(local_path, dropbox_path)
     commit = DropboxApi::Metadata::CommitInfo.new(
