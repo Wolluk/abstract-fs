@@ -75,6 +75,7 @@ module Dropbox
   end
 
   def upload(local_path, dropbox_path)
+    chunkSize = if DEBUG_CHUNKING then 16 * 1024 else DROPBOX_UL_CHUNK_SIZE
     dropbox_path = normalize_path(dropbox_path)
     log_upload(local_path, dropbox_path)
     commit = DropboxApi::Metadata::CommitInfo.new(
@@ -83,11 +84,11 @@ module Dropbox
     )
     cursor = nil
     File.open(local_path) do |f|
-      chunk = f.read(16 * 1024)
+      chunk = f.read(chunkSize)
       cursor = client.upload_session_start(chunk)
       # HACK: We have to keep the offset ourselves, as the lib doesn't in 1.3.2
       offset = chunk.bytesize
-      while chunk = f.read(16 * 1024)
+      while chunk = f.read(chunkSize)
         cursor.instance_variable_set(:@offset, offset)
         client.upload_session_append_v2(cursor, chunk)
         offset += chunk.bytesize

@@ -39,6 +39,8 @@
    # This allows us to
    DEBUG_ERROR_CLOUD = true
    DEBUG_NOTIFY_CLOUD = true
+   DEBUG_CHUNKING = false
+   DROPBOX_UL_CHUNK_SIZE = 1024 * 1024 # 1 MiB
 
    ```
 
