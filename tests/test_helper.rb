@@ -1,5 +1,6 @@
 require 'test/unit'
 require 'pp'
+STDOUT.sync = true
 
 Dir.glob(File.absolute_path(File.dirname(__FILE__)+'/../lib/*.rb'), &method(:require))
 
