@@ -53,13 +53,15 @@ class TestDropbox < Test::Unit::TestCase
     assert_equal output_path, meta['path']
     assert_false meta['is_dir']
 
-    # Below does not work:
     assert_true DateTime.now > DateTime.parse(meta['modified'])
     assert_true DateTime.now > DateTime.parse(meta['created'])
     assert_true DateTime.now > DateTime.parse(meta['client_ctime'])
     assert_true DateTime.now > DateTime.parse(meta['client_mtime'])
-    assert_equal 'image/jpeg', meta['is_dir']
-    assert_false meta['read_only']
+    assert_equal 'image/jpeg', meta['mime_type']
     assert_not_nil meta['thumb_exists']
+    # read_only applies to shared folders only,
+    # and always has: https://www.dropbox.com/developers-v1/core/docs#metadata
+    # I think this test is incorrect
+    assert_false meta['read_only']
   end
 end

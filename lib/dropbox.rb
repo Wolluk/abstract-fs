@@ -25,8 +25,16 @@ module Dropbox
     return nil if orig.nil?
     orig = orig.to_hash if orig.class != Hash
     orig["sharing_info"] = {} if orig["sharing_info"].nil?
+    mime = MIME::Types.type_for(orig["path_display"] || "")
+    img_ext = [".png", ".jpeg", ".jpg", ".tif", ".tiff", ".gif", ".bmp"]
+    has_thumb = ((orig["size"] || 0) < 20 * 2**20 &&
+                 img_ext.include?(File.extname(orig["name"]).downcase))
+    # XXX: What to use for root?
+    # XXX: Creation time does not exist!
     meta = {
-      "size" => orig["size"], # Technically incorrect, size doesn't exist in v2
+      "name" => orig["name"],
+      # in v1, used to be human-readable size ("2.3 MB", "225.4KB", "0 bytes")
+      "size" => orig["size"],
       "bytes" => orig["size"],
       "path" => orig["path_display"],
       "is_dir" => orig[".tag"] == "folder",
@@ -34,24 +42,32 @@ module Dropbox
       "rev" => orig["rev"],
       "read_only" => orig["sharing_info"]["read_only"],
       "parent_shared_folder_id" => orig["sharing_info"]["parent_shared_folder_id"],
-      "modifier" => orig["sharing_info"]["modified_by"]
-      # hash, icon, root, mime_type don't exist
-      # TODO: thumb_exists, photo_info, video_info, shared_folder
+      "modifier" => orig["sharing_info"]["modified_by"],
+      "mime_type" => (mime && mime.first ? mime.first.simplified : ""),
+      "thumb_exists" => has_thumb,
+      "hash" => orig["content_hash"],
+      "modified" => orig["server_modified"],
+      "client_mtime" => orig["client_modified"],
+      "created" => "1970-01-01T00:00",
+      "client_ctime" => "1970-01-01T00:00",
+      # icon, root don't exist
+      # photo_info, video_info, shared_folder - complex replacements
     }
+    # TODO: Implement contents
+    meta["contents"] = []
     meta
   end
 
-  # FIXME: broken, but is this even neccessary with the new API gem?
   def with_retry(&block)
-#   tries ||= DROPBOX_NO_OF_RETRIES
+    tries ||= DROPBOX_NO_OF_RETRIES
     yield
-# rescue StandardError => ex
-#   if ex.http_response.is_a? Net::HTTPServiceUnavailable
-#     sleep(DROPBOX_RETRY_DELAY + DROPBOX_NO_OF_RETRIES - tries)
-#     retry unless (tries -= 1).zero?
-#   else
-#     raise ex
-#   end
+  # Using full names for the errors, as otherwise we get weird NameErrors
+  rescue DropboxApi::Errors::TooManyRequestsError, DropboxApi::Errors::TooManyWriteOperationsError, DropboxApi::Errors::RateLimitError, DropboxApi::Errors::HTTPError
+    sleep(DROPBOX_RETRY_DELAY + DROPBOX_NO_OF_RETRIES - tries)
+    retry unless (tries -= 1).zero?
+  rescue StandardError => ex
+    error "Retry failed: #{ex.class.name}: #{ex.message}"
+    raise ex
   end
 
   def download(dropbox_path, local_path)
@@ -75,6 +91,7 @@ module Dropbox
   end
 
   def upload(local_path, dropbox_path)
+    # NOTE: It might be a good idea to implement a proper upload queue
     chunkSize = if DEBUG_CHUNKING then 16 * 1024 else DROPBOX_UL_CHUNK_SIZE end
     dropbox_path = normalize_path(dropbox_path)
     log_upload(local_path, dropbox_path)
@@ -85,20 +102,22 @@ module Dropbox
     cursor = nil
     File.open(local_path) do |f|
       chunk = f.read(chunkSize)
-      cursor = client.upload_session_start(chunk)
+      cursor = with_retry { client.upload_session_start(chunk) }
       # HACK: We have to keep the offset ourselves, as the lib doesn't in 1.3.2
       offset = chunk.bytesize
       while chunk = f.read(chunkSize)
-        cursor.instance_variable_set(:@offset, offset)
-        client.upload_session_append_v2(cursor, chunk)
-        offset += chunk.bytesize
+        with_retry do
+          cursor.instance_variable_set(:@offset, offset)
+          client.upload_session_append_v2(cursor, chunk)
+          offset += chunk.bytesize
+        end
       end
       cursor.instance_variable_set(:@offset, offset)
     end
-    metadata_compat(client.upload_session_finish(cursor, commit))
-  rescue Exception => ex
-    error "Upload failed: %s." % ex.message
-    nil
+    with_retry { metadata_compat(client.upload_session_finish(cursor, commit)) }
+#  rescue Exception => ex
+#    error "Upload failed: %s." % ex.message
+#    nil
   end
 
   def normalize_path(path)
@@ -112,7 +131,6 @@ module Dropbox
     meta = with_retry do
       client.get_metadata(dropbox_path)
     end
-    # return nil if meta && meta['is_deleted']
     metadata_compat(meta)
   rescue Exception
     nil
@@ -155,7 +173,8 @@ module Dropbox
     meta = metadata_compat(meta)
     meta["is_deleted"] = true # tag is not set to deleted when returned here
     meta
-  rescue Exception
+  rescue Exception => ex
+    error "Rm failed: #{ex.class.name}: #{ex.message}"
     nil
   end
 

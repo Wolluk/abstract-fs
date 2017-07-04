@@ -20,9 +20,9 @@ class CloudTest < Test::Unit::TestCase
   def test_remote_operations
     input = File.expand_path("../fixtures/duck.jpg", __FILE__)
 
-    output_1 = File.join(CLOUD_DROPBOX, "Test/duck-go.jpg")
-    output_2 = File.join(CLOUD_DROPBOX, "Test/duck-go-away.jpg")
-    output_3 = File.join(CLOUD_DROPBOX, "Test/duck-go-back.jpg")
+    output_1 = File.join(CLOUD_DROPBOX, "RemoteTest", "duck-go.jpg")
+    output_2 = File.join(CLOUD_DROPBOX, "RemoteTest", "duck-go-away.jpg")
+    output_3 = File.join(CLOUD_DROPBOX, "RemoteTest", "duck-go-back.jpg")
 
     assert_equal 99445, Cloud.upload(input, output_1)['bytes']
     assert_not_nil Cloud.mv(output_1, output_2)
@@ -30,7 +30,7 @@ class CloudTest < Test::Unit::TestCase
     assert_nil Cloud.find(output_1)
     assert_equal 99445, Cloud.find(output_3)['bytes']
     assert_equal 99445, Cloud.find(output_2)['bytes']
-    assert_equal true, Cloud.rm(File.join(CLOUD_DROPBOX, "Test"))['is_deleted']
+    assert_equal true, Cloud.rm(File.join(CLOUD_DROPBOX, "RemoteTest"))['is_deleted']
   end
 
   def test_multithreaded_operations
@@ -56,9 +56,9 @@ class CloudTest < Test::Unit::TestCase
 
   def test_local_operations
     tmp_path = File.expand_path("../fixtures/duck.jpg", __FILE__)
-    output_1 = File.join(LOCAL_STORAGE, "duck-go.jpg")
-    output_2 = File.join(LOCAL_STORAGE, "duck-go-away.jpg")
-    output_3 = File.join(LOCAL_STORAGE, "duck-go-back.jpg")
+    output_1 = File.join(LOCAL_STORAGE, "Local", "duck-go.jpg")
+    output_2 = File.join(LOCAL_STORAGE, "Local", "duck-go-away.jpg")
+    output_3 = File.join(LOCAL_STORAGE, "Local", "duck-go-back.jpg")
 
     assert_equal 99445, Cloud.upload(tmp_path, output_1)['bytes']
     assert_not_nil Cloud.mv(output_1, output_2)
@@ -66,15 +66,15 @@ class CloudTest < Test::Unit::TestCase
     assert_nil Cloud.find(output_1)
     assert_equal 99445, Cloud.find(output_3)['bytes']
     assert_equal 99445, Cloud.find(output_2)['bytes']
-    assert_equal true, Cloud.rm(File.join(LOCAL_STORAGE))['is_deleted']
+    assert_equal true, Cloud.rm(File.join(LOCAL_STORAGE, "Local"))['is_deleted']
   end
 
   def test_local_vs_remote
     tmp_path = File.expand_path("../fixtures/duck.jpg", __FILE__)
 
-    output_1 = File.join(LOCAL_STORAGE, "duck-go.jpg")
-    output_2 = File.join(CLOUD_DROPBOX, "duck-go-away.jpg")
-    output_3 = File.join(LOCAL_STORAGE, "duck-go-back.jpg")
+    output_1 = File.join(LOCAL_STORAGE, "LocalRemote", "duck-go.jpg")
+    output_2 = File.join(CLOUD_DROPBOX, "LocalRemote", "duck-go-away.jpg")
+    output_3 = File.join(LOCAL_STORAGE, "LocalRemote", "duck-go-back.jpg")
 
 
     assert_equal 99445, Cloud.upload(tmp_path, output_1)['bytes']
@@ -86,8 +86,8 @@ class CloudTest < Test::Unit::TestCase
     assert_equal 99445, Cloud.find(output_1)['bytes']
     assert_equal 99445, Cloud.find(output_3)['bytes']
 
-    assert_equal true, Cloud.rm(File.join(CLOUD_DROPBOX))['is_deleted']
-    assert_equal true, Cloud.rm(File.join(LOCAL_STORAGE))['is_deleted']
+    assert_equal true, Cloud.rm(File.join(CLOUD_DROPBOX, "LocalRemote"))['is_deleted']
+    assert_equal true, Cloud.rm(File.join(LOCAL_STORAGE, "LocalRemote"))['is_deleted']
   end
 
 
