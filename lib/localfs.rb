@@ -46,7 +46,7 @@ module LocalFS
         'root'=> 'localfs',
         'mime_type'=> mime,
         'client_mtime' => File.mtime(storage_path).strftime(DBX_TIME_FORMAT),
-        'craeted' => File.ctime(storage_path).strftime(DBX_TIME_FORMAT),
+        'created' => File.ctime(storage_path).strftime(DBX_TIME_FORMAT),
         'client_ctime' => File.ctime(storage_path).strftime(DBX_TIME_FORMAT),
       }
 

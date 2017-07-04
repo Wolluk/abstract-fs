@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'dropbox-sdk'
+gem 'dropbox_api'
 gem 'colorize'
 gem 'mime-types'
 

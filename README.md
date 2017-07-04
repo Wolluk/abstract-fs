@@ -11,7 +11,7 @@
 2. Create a gemset for rvm called `abstract-fs` using 2.3.1 installed:
 
    ```shell
-   rvm create gemset abstract-fs
+   rvm gemset create abstract-fs
    ```
 
 3. Connect to own dropbox account (this used be done over API v1 with https://github.com/dropbox/dropbox-sdk-ruby, but it's not longer valid. You need to find a way to process it with API v2.
@@ -41,6 +41,8 @@
    # This allows us to
    DEBUG_ERROR_CLOUD = true
    DEBUG_NOTIFY_CLOUD = true
+   DEBUG_CHUNKING = false
+   DROPBOX_UL_CHUNK_SIZE = 1024 * 1024 # 1 MiB
 
    ```
 
@@ -59,7 +61,7 @@ There are now two tests:
 1. `dropbox_test.rb` is pure API test over the abstraction layer
 2. `cloud_test.rb` test compatiblity remote versus local storage (to be extended)
 
-There should be one more test to add, that ensures the API can survive multithreaded operations, while multiple queries are running at the same time. Some libraries failed to pass this, unfortunately there is no testing routine written for that yet. 
+There should be one more test to add, that ensures the API can survive multithreaded operations, while multiple queries are running at the same time. Some libraries failed to pass this, unfortunately there is no testing routine written for that yet.
 
 ## Materials & References
 

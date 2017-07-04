@@ -51,7 +51,7 @@ module CloudFileSysBase
     path
   end
 
-  def sub_path_of(path,base)
+  def sub_path_of(path, base)
     b = base.split('/').map{|k| k.empty? ? nil : k }.compact
     p = path.split('/').map{|k| k.empty? ? nil : k }.compact
     while l = b.shift
