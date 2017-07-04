@@ -11,7 +11,7 @@ class TestDropbox < Test::Unit::TestCase
   end
 
   def test_connection_and_account
-    assert_equal 'tomek.drazek@gmail.com', Dropbox.account['email']
+    assert_not_nil Dropbox.account['email']
   end
 
   def test_remote_operations
@@ -40,8 +40,26 @@ class TestDropbox < Test::Unit::TestCase
     # Removal of the file and folder:
     assert_nil Dropbox.rm(invalid_path, false)
     assert_nil Dropbox.rm(invalid_path)
-    assert_equal true, Dropbox.rm(output_path)['is_deleted']
+    assert_equal true, Dropbox.rm(output_path)['is_deleted'] # does not pass due the API change
   end
 
+  def test_meta_data
+    tmp_path = File.expand_path("../fixtures/duck.jpg", __FILE__)
+    output_path = File.join(DROPBOX_SPACE_ROOT, 'duck-out.jpg')
+    assert_equal 99445, Dropbox.upload(tmp_path,output_path)['bytes']
+    meta = Dropbox.find(output_path)
+    assert_not_nil meta
+    assert_equal 99445, meta['bytes']
+    assert_equal output_path, meta['path']
+    assert_false meta['is_dir']
 
+    # Below does not work:
+    assert_true DateTime.now > DateTime.parse(meta['modified'])
+    assert_true DateTime.now > DateTime.parse(meta['created'])
+    assert_true DateTime.now > DateTime.parse(meta['client_ctime'])
+    assert_true DateTime.now > DateTime.parse(meta['client_mtime'])
+    assert_equal 'image/jpeg', meta['is_dir']
+    assert_false meta['read_only']
+    assert_not_nil meta['thumb_exists']
+  end
 end
