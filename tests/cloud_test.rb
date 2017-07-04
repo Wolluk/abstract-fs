@@ -34,38 +34,23 @@ class CloudTest < Test::Unit::TestCase
   end
 
   def test_multithreaded_operations
+    thread_count = 100
     in_dir = File.expand_path("../fixtures", __FILE__)
     in_duck_jpg = File.join(in_dir, "duck.jpg")
-    in_duck_png = File.join(in_dir, "duck.png")
-    in_duck_psd = File.join(in_dir, "duck.psd") # Test large files
-
-    test_dir = File.expand_path("../tmp", __FILE__)
-    FileUtils.mkdir_p(test_dir)
-    out1 = File.join(CLOUD_DROPBOX, "par/duck.jpg")
-    out2 = File.join(CLOUD_DROPBOX, "par/duck.png")
-    out3 = File.join(CLOUD_DROPBOX, "par/duck.psd")
-    local1 = File.join(test_dir, "duck.jpg");
-    local2 = File.join(test_dir, "duck.png");
-    local3 = File.join(test_dir, "duck.psd");
-
+    test_dir = File.expand_path("../fixtures/tmp", __FILE__)
     threads = []
-    threads << Thread.new {
-      assert_equal 99445, Cloud.upload(in_duck_jpg, out1)['bytes'];
-      assert_equal 99445, Cloud.download(out1, local1)['bytes'];
-    }
-    threads << Thread.new {
-      assert_equal 301579, Cloud.upload(in_duck_png, out2)['bytes'];
-      assert_equal 301579, Cloud.download(out2, local2)['bytes'];
-    }
-    threads << Thread.new {
-      assert_equal 1_598_534, Cloud.upload(in_duck_psd, out3)['bytes'];
-      assert_equal 1_598_534, Cloud.download(out3, local3)['bytes'];
-    }
-    threads.each { |t| t.join }
 
-    assert_true FileUtils.compare_file(in_duck_jpg, local1)
-    assert_true FileUtils.compare_file(in_duck_png, local2)
-    assert_true FileUtils.compare_file(in_duck_psd, local3)
+    FileUtils.mkdir_p(test_dir)
+    thread_count.times do |t|
+      threads << Thread.new do
+        out = File.join(CLOUD_DROPBOX, "par/duck-#{t}.jpg")
+        local = File.join(test_dir, "duck-#{t}.jpg");
+        assert_equal 99445, Cloud.upload(in_duck_jpg, out)['bytes']
+        assert_equal 99445, Cloud.download(out, local)['bytes']
+        assert_true FileUtils.compare_file(in_duck_jpg, local)
+      end
+    end
+    threads.each { |t| t.join }
     FileUtils.rm_rf(test_dir)
   end
 
