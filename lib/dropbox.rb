@@ -53,8 +53,11 @@ module Dropbox
       # icon, root don't exist
       # photo_info, video_info, shared_folder - complex replacements
     }
-    # TODO: Implement contents
     meta["contents"] = []
+    if meta["is_dir"]
+      result = list_folder(meta["path"])
+      result.entries.each { |res| meta["contents"] << res.to_hash["path_display"] }
+    end
     meta
   end
 
@@ -92,7 +95,6 @@ module Dropbox
 
   def upload(local_path, dropbox_path)
     # NOTE: It might be a good idea to implement a proper upload queue
-    chunkSize = if DEBUG_CHUNKING then 16 * 1024 else DROPBOX_UL_CHUNK_SIZE end
     dropbox_path = normalize_path(dropbox_path)
     log_upload(local_path, dropbox_path)
     commit = DropboxApi::Metadata::CommitInfo.new(
@@ -101,11 +103,11 @@ module Dropbox
     )
     cursor = nil
     File.open(local_path) do |f|
-      chunk = f.read(chunkSize)
+      chunk = f.read(DROPBOX_UL_CHUNK_SIZE)
       cursor = with_retry { client.upload_session_start(chunk) }
       # HACK: We have to keep the offset ourselves, as the lib doesn't in 1.3.2
       offset = chunk.bytesize
-      while chunk = f.read(chunkSize)
+      while chunk = f.read(DROPBOX_UL_CHUNK_SIZE)
         with_retry do
           cursor.instance_variable_set(:@offset, offset)
           client.upload_session_append_v2(cursor, chunk)
@@ -115,9 +117,9 @@ module Dropbox
       cursor.instance_variable_set(:@offset, offset)
     end
     with_retry { metadata_compat(client.upload_session_finish(cursor, commit)) }
-#  rescue Exception => ex
-#    error "Upload failed: %s." % ex.message
-#    nil
+  rescue Exception => ex
+    error "Upload failed: %s." % ex.message
+    nil
   end
 
   def normalize_path(path)
@@ -179,10 +181,9 @@ module Dropbox
   end
 
   # Direct link
-  # FIXME
   def dl(dropbox_path)
     with_retry do
-      client.media(dropbox_path)
+      { "url" => client.get_temporary_link(dropbox_path).link }
     end
   rescue Exception => ex
     error "URL failed: %s." % ex.message
