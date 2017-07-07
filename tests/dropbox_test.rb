@@ -65,18 +65,19 @@ class TestDropbox < Test::Unit::TestCase
   # Web hook reports an update and we read all changed files since last check-up (delta)
   # This API is highly used by the remote hot-folder feature. 
   def test_incremental_update
-    client = Dropbox.client
+    # client = Dropbox.client
     cursor_pos = nil # Read all changes
     tmp_path = File.expand_path("../fixtures/duck.jpg", __FILE__)
     output_path = File.join(DROPBOX_SPACE_ROOT, 'incr-test', 'duck-out.jpg')
     output_dir = File.join(DROPBOX_SPACE_ROOT, 'incr-test')
-    delta = client.delta(cursor_pos, output_dir)
+    Dropbox.mkdir(output_dir)
+    delta = Dropbox.delta(cursor_pos, output_dir)
     assert_not_nil delta
     assert_not_nil delta['entries']
     assert_not_nil delta['cursor']
     cursor_pos = delta['cursor']
     assert_equal 99445, Dropbox.upload(tmp_path,output_path)['bytes']
-    delta = client.delta(cursor_pos, output_dir) # Read incremental changes only
+    delta = Dropbox.delta(cursor_pos, output_dir) # Read incremental changes only
     assert_not_nil delta
     assert_not_nil delta['entries']
     assert_equal 1, delta['entries'].count

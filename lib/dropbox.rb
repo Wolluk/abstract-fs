@@ -148,6 +148,29 @@ module Dropbox
     nil
   end
 
+  def delta(cursor = nil, dropbox_path = nil)
+    dropbox_path &&= normalize_path(dropbox_path)
+    return nil if cursor.nil? && dropbox_path.nil?
+    entries = []
+    has_more = true
+    while has_more
+      meta = with_retry do
+        if cursor
+          client.list_folder_continue(cursor)
+        else
+          client.list_folder(dropbox_path)
+        end
+      end
+      meta.entries.each { |e| entries << e }
+      cursor = meta.cursor
+      has_more = meta.has_more?
+    end
+    { "cursor" => cursor, "entries" => entries }
+  rescue StandardError => ex
+    error "Delta failed: #{ex.class.name}: #{ex.message}"
+    nil
+  end
+
   def cp(dropbox_src_path, dropbox_dst_path, overwrite = true)
     dropbox_src_path = normalize_path(dropbox_src_path)
     dropbox_dst_path = normalize_path(dropbox_dst_path)
