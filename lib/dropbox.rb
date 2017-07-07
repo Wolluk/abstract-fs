@@ -55,17 +55,27 @@ module Dropbox
     }
     meta["contents"] = []
     if meta["is_dir"]
-      result = list_folder(meta["path"])
-      result.entries.each { |res| meta["contents"] << res.to_hash["path_display"] }
+      begin
+        result = client.list_folder(meta["path"])
+        result.entries.each { |res| meta["contents"] << res.to_hash["path_display"] }
+      rescue DropboxApi::Errors::BasicError
+      end
     end
     meta
   end
 
-  def with_retry(&block)
+  # Using full names for the errors, as otherwise we get weird NameErrors
+  RECOVERABLE_ERRORS = [
+    DropboxApi::Errors::TooManyRequestsError,
+    DropboxApi::Errors::TooManyWriteOperationsError,
+    DropboxApi::Errors::RateLimitError,
+    DropboxApi::Errors::HttpError,
+  ]
+
+  def with_retry
     tries ||= DROPBOX_NO_OF_RETRIES
     yield
-  # Using full names for the errors, as otherwise we get weird NameErrors
-  rescue DropboxApi::Errors::TooManyRequestsError, DropboxApi::Errors::TooManyWriteOperationsError, DropboxApi::Errors::RateLimitError, DropboxApi::Errors::HTTPError
+  rescue *RECOVERABLE_ERRORS
     sleep(DROPBOX_RETRY_DELAY + DROPBOX_NO_OF_RETRIES - tries)
     retry unless (tries -= 1).zero?
   rescue StandardError => ex
@@ -85,10 +95,10 @@ module Dropbox
     end
     metadata = file.to_hash
     FileUtils.mkdir_p(File.dirname(local_path))
-    File.open(local_path, 'w') {|f| f.write(contents) }
+    File.open(local_path, 'w') { |f| f.write(contents) }
     raise "File size mismatch" unless metadata['size'] == File.size(local_path)
     metadata_compat(metadata) # small change in API, we have confirmation here also that size match!
-  rescue Exception => ex
+  rescue StandardError => ex
     error "Download failed: %s." % ex.message
     nil
   end
@@ -117,14 +127,14 @@ module Dropbox
       cursor.instance_variable_set(:@offset, offset)
     end
     with_retry { metadata_compat(client.upload_session_finish(cursor, commit)) }
-  rescue Exception => ex
+  rescue StandardError => ex
     error "Upload failed: %s." % ex.message
     nil
   end
 
   def normalize_path(path)
     path = path.join("/") if path.is_a? Array
-    path = "/" + path if path[0] != '/'
+    path = '/' + path if path[0] != '/'
     path
   end
 
@@ -134,7 +144,7 @@ module Dropbox
       client.get_metadata(dropbox_path)
     end
     metadata_compat(meta)
-  rescue Exception
+  rescue StandardError
     nil
   end
 
@@ -147,7 +157,7 @@ module Dropbox
       client.copy(dropbox_src_path, dropbox_dst_path)
     end
     metadata_compat(meta)
-  rescue Exception => ex
+  rescue StandardError => ex
     error "Copy failed: %s" % ex.message
     nil
   end
@@ -161,7 +171,7 @@ module Dropbox
       client.move(dropbox_src_path, dropbox_dst_path)
     end
     metadata_compat(meta)
-  rescue Exception => ex
+  rescue StandardError => ex
     error "Move failed: %s." % ex.message
     nil
   end
@@ -175,7 +185,7 @@ module Dropbox
     meta = metadata_compat(meta)
     meta["is_deleted"] = true # tag is not set to deleted when returned here
     meta
-  rescue Exception => ex
+  rescue StandardError => ex
     error "Rm failed: #{ex.class.name}: #{ex.message}"
     nil
   end
@@ -185,7 +195,7 @@ module Dropbox
     with_retry do
       { "url" => client.get_temporary_link(dropbox_path).link }
     end
-  rescue Exception => ex
+  rescue StandardError => ex
     error "URL failed: %s." % ex.message
     nil
   end
@@ -196,7 +206,7 @@ module Dropbox
     with_retry do
       client.get_thumbnail(dropbox_path, "size" => size)
     end
-  rescue Exception => ex
+  rescue StandardError => ex
     error "Thumbnail failed: %s." % ex.message
     nil
   end
@@ -206,7 +216,7 @@ module Dropbox
       client.create_folder(dropbox_path)
     end
     metadata_compat(meta)
-  rescue Exception => ex
+  rescue StandardError => ex
     error "Make dir failed: %s." % ex.message
     nil
   end

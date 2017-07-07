@@ -27,12 +27,12 @@ module LocalFS
   end
 
   def path2url(dropbox_path)
-    File.join(LOCAL_STORAGE_URL,normalize_path(dropbox_path).gsub(/^#{normalize_path(DROPBOX_SPACE_ROOT)}/i, ''))
+    File.join(LOCAL_STORAGE_URL, normalize_path(dropbox_path).gsub(/^#{normalize_path(DROPBOX_SPACE_ROOT)}/i, ''))
   end
 
   def file_metadata(dropbox_path)
     storage_path = path2local(dropbox_path)
-    if File.exists?(storage_path)
+    if File.exist?(storage_path)
       mime = MIME::Types.type_for(storage_path)
       mime = (mime.first.simplified if (mime && mime.first)) || ""
       meta = {
@@ -182,7 +182,7 @@ module LocalFS
   end
 
   def prune_local_folder(dropbox_path)
-    dropbox_path=normalize_path(dropbox_path)
+    dropbox_path = normalize_path(dropbox_path)
     path = path2local(dropbox_path)
     while prune(path) > 0 do
     end

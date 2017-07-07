@@ -16,7 +16,7 @@ module CloudFileSysBase
   end
 
   def log(*args)
-    args[0]="[+]".cyan + " " + filesys_type + " " + args[0]
+    args[0] = "[+]".cyan + " " + filesys_type + " " + args[0]
     puts args if DEBUG_NOTIFY_CLOUD
   end
 
@@ -41,13 +41,13 @@ module CloudFileSysBase
   end
 
   def error(*args)
-    args[0]="[-] %s %s ".light_white.on_red % [ filesys_type().yellow.on_red, args[0].to_s ]
+    args[0] = "[-] %s %s ".light_white.on_red % [ filesys_type().yellow.on_red, args[0].to_s ]
     puts args if DEBUG_ERROR_CLOUD
   end
 
   def normalize_path(path)
     path = path.join("/") if path.is_a? Array
-    path = path[1..-1] if path[0]=='/'
+    path = path[1..-1] if path[0] == '/'
     path
   end
 
