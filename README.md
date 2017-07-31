@@ -47,6 +47,14 @@
 
    ​
 
+## Getting a Dropbox API key
+
+1. Go to https://www.dropbox.com/developers/apps
+
+2. Create app or choose existing app
+
+3. Copy App key, App secret, and OAuth 2 token into `config/config.rb` (use config file template from the [Setting it up](#setting-it-up) section)
+
 ## The concept
 
 The adapter makes a common storage space, which integrates with one single storage. All paths are references from the root of the storage. For specific cloud implementation, like a dropbox we provide additional parameter that points to particular subfolder within the storage `DROPBOX_SPACE_ROOT` or for local storage it's `LOCAL_STORAGE` . So this virtual file system maps automatically a path referenced to the appropriate location. 
