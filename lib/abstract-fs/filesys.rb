@@ -1,7 +1,6 @@
 require 'fileutils'
 require 'colorize'
 
-require_relative '../config/config.rb'
 
 module CloudFileSysBase
 

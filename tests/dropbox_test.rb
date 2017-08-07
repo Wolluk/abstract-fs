@@ -55,17 +55,12 @@ class TestDropbox < Test::Unit::TestCase
     assert_true DateTime.now > DateTime.parse(meta['client_mtime'])
     assert_equal 'image/jpeg', meta['mime_type']
     assert_not_nil meta['thumb_exists']
-    # read_only applies to shared folders only,
-    # and always has: https://www.dropbox.com/developers-v1/core/docs#metadata
-    # I think this test is incorrect
-    assert_false meta['read_only']
   end
 
   # This is incremental update for web-hook reported changes
   # Web hook reports an update and we read all changed files since last check-up (delta)
-  # This API is highly used by the remote hot-folder feature. 
+  # This API is highly used by the remote hot-folder feature.
   def test_incremental_update
-    # client = Dropbox.client
     cursor_pos = nil # Read all changes
     tmp_path = File.expand_path("../fixtures/duck.jpg", __FILE__)
     output_path = File.join(DROPBOX_SPACE_ROOT, 'incr-test', 'duck-out.jpg')
