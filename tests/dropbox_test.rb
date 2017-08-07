@@ -78,4 +78,19 @@ class TestDropbox < Test::Unit::TestCase
     assert_equal 1, delta['entries'].count
     Dropbox.rm(output_path)
   end
+
+  def test_download_link
+    tmp_path = File.expand_path("../fixtures/duck.jpg", __FILE__)
+    output_path = File.join(DROPBOX_SPACE_ROOT, 'duck-out.jpg')
+    assert_equal 99445, Dropbox.upload(tmp_path, output_path)['bytes']
+    meta = Dropbox.find(output_path)
+    assert_not_nil meta
+    assert_equal 99445, meta['bytes']
+    assert_equal output_path, meta['path']
+    dl = Dropbox.dl(output_path)
+
+    assert_not_nil dl
+    assert_not_nil dl['url']
+    assert_true dl['url'].include?("https://dl.dropboxusercontent.com/apitl/")
+  end
 end
