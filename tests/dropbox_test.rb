@@ -71,11 +71,27 @@ class TestDropbox < Test::Unit::TestCase
     assert_not_nil delta['entries']
     assert_not_nil delta['cursor']
     cursor_pos = delta['cursor']
+
+    # Read after file upload:
     assert_equal 99445, Dropbox.upload(tmp_path,output_path)['bytes']
     delta = Dropbox.delta(cursor_pos, output_dir) # Read incremental changes only
     assert_not_nil delta
     assert_not_nil delta['entries']
+    puts "Entries: #{delta['entries'].inspect}"
     assert_equal 1, delta['entries'].count
+    path = delta['entries'][0].path_display
+    assert_equal output_path, path
+    cursor_pos = delta['cursor']
+
+    # Read after file removal:
+    assert_not_nil Dropbox.rm(output_path)
+    delta = Dropbox.delta(cursor_pos, output_dir) # Read incremental changes only
+    assert_not_nil delta
+    assert_not_nil delta['entries']
+    puts "Entries: #{delta['entries'][0].inspect}"
+    assert_equal 1, delta['entries'].count
+    path = delta['entries'][0].path_display
+    assert_equal output_path, path
     Dropbox.rm(output_path)
   end
 
